@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Binance Futures Testnet Bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & tokens ────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0b0e17;
+      --surface:    #111827;
+      --surface2:   #1a2235;
+      --border:     #1f2d45;
+      --accent:     #f0b90b;
+      --accent-dim: #c99a09;
+      --green:      #0ecb81;
+      --red:        #f6465d;
+      --blue:       #1890ff;
+      --text:       #e2e8f0;
+      --muted:      #64748b;
+      --radius:     12px;
+      --radius-sm:  8px;
+    }
+
+    html { font-size: 16px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ────────────────────────────────────────── */
+    .app {
+      display: grid;
+      grid-template-rows: 64px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ───────────────────────────────────────────── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+    .nav-brand .logo {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+    .badge {
+      background: rgba(240,185,11,.15);
+      color: var(--accent);
+      border: 1px solid rgba(240,185,11,.3);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+
+    /* ── Tabs ──────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: color .2s, background .2s;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--surface2); }
+    .tab-btn.active { color: var(--accent); background: rgba(240,185,11,.1); }
+
+    /* ── Main content ──────────────────────────────────── */
+    main {
+      padding: 32px;
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Card ──────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* ── Form ──────────────────────────────────────────── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    input, select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      width: 100%;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(240,185,11,.15);
+    }
+    select option { background: var(--surface2); }
+
+    /* ── Buttons ───────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 11px 22px;
+      transition: filter .2s, transform .1s;
+      line-height: 1;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: rgba(246,70,93,.15); color: var(--red); border: 1px solid rgba(246,70,93,.3); }
+    .btn-danger:hover { background: rgba(246,70,93,.25); }
+    .btn-full { width: 100%; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Result / Alert ────────────────────────────────── */
+    .result-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-top: 20px;
+      display: none;
+    }
+    .result-box.visible { display: block; }
+    .result-box.success { border-color: var(--green); }
+    .result-box.error   { border-color: var(--red); }
+
+    .result-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 14px;
+    }
+    .result-title.success { color: var(--green); }
+    .result-title.error   { color: var(--red);   }
+
+    .kv-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 6px 20px;
+    }
+    .kv-key {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .kv-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      word-break: break-all;
+    }
+    .kv-val.green { color: var(--green); }
+    .kv-val.red   { color: var(--red);   }
+    .kv-val.accent{ color: var(--accent);}
+
+    /* ── Status pill ───────────────────────────────────── */
+    .pill {
+      display: inline-block;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+    .pill-green { background: rgba(14,203,129,.15); color: var(--green); }
+    .pill-red   { background: rgba(246,70,93,.15);  color: var(--red);   }
+    .pill-blue  { background: rgba(24,144,255,.15); color: var(--blue);  }
+    .pill-muted { background: var(--surface2); color: var(--muted); }
+
+    /* ── Table ─────────────────────────────────────────── */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(31,45,69,.5);
+    }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Loading spinner ───────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Dynamic fields ────────────────────────────────── */
+    .field-price  { display: none; }
+    .field-stop   { display: none; }
+    .field-tif    { display: none; }
+
+    /* ── Responsive ────────────────────────────────────── */
+    @media (max-width: 640px) {
+      main { padding: 16px; }
+      .form-grid { grid-template-columns: 1fr; }
+      nav { padding: 0 16px; }
+      .tabs { gap: 2px; }
+      .tab-btn { padding: 8px 10px; font-size: 0.82rem; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- ── Nav ──────────────────────────────────────────── -->
+  <nav>
+    <div class="nav-brand">
+      <div class="logo">₿</div>
+      <span>Futures Bot</span>
+      <span class="badge">TESTNET</span>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('trade',this)">Place Order</button>
+      <button class="tab-btn" onclick="switchTab('balance',this)">Balance</button>
+      <button class="tab-btn" onclick="switchTab('status',this)">Order Status</button>
+    </div>
+  </nav>
+
+  <!-- ── Main ─────────────────────────────────────────── -->
+  <main>
+
+    <!-- ════════════════════════════════════════════════
+         TAB 1 — PLACE ORDER
+    ════════════════════════════════════════════════ -->
+    <div class="panel active" id="panel-trade">
+      <div class="card">
+        <div class="card-title">New Order</div>
+        <form id="order-form" onsubmit="submitOrder(event)">
+          <div class="form-grid">
+
+            <div class="form-group">
+              <label for="symbol">Symbol</label>
+              <input id="symbol" type="text" placeholder="BTCUSDT" maxlength="20" required />
+            </div>
+
+            <div class="form-group">
+              <label for="side">Side</label>
+              <select id="side">
+                <option value="BUY">🟢 BUY</option>
+                <option value="SELL">🔴 SELL</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="order-type">Order Type</label>
+              <select id="order-type" onchange="onTypeChange(this.value)">
+                <option value="MARKET">MARKET</option>
+                <option value="LIMIT">LIMIT</option>
+                <option value="STOP_MARKET">STOP_MARKET</option>
+                <option value="STOP_LIMIT">STOP_LIMIT ✨</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="quantity">Quantity</label>
+              <input id="quantity" type="number" step="any" min="0" placeholder="0.01" required />
+            </div>
+
+            <!-- Limit price — LIMIT / STOP_LIMIT -->
+            <div class="form-group field-price" id="field-price">
+              <label for="price">Limit Price (USDT)</label>
+              <input id="price" type="number" step="any" min="0" placeholder="95000" />
+            </div>
+
+            <!-- Stop price — STOP_MARKET / STOP_LIMIT -->
+            <div class="form-group field-stop" id="field-stop">
+              <label for="stop-price">Stop Trigger Price (USDT)</label>
+              <input id="stop-price" type="number" step="any" min="0" placeholder="90000" />
+            </div>
+
+            <!-- Time-in-force — LIMIT / STOP_LIMIT -->
+            <div class="form-group field-tif" id="field-tif">
+              <label for="tif">Time-in-Force</label>
+              <select id="tif">
+                <option value="GTC">GTC — Good Till Cancelled</option>
+                <option value="IOC">IOC — Immediate or Cancel</option>
+                <option value="FOK">FOK — Fill or Kill</option>
+              </select>
+            </div>
+
+            <div class="form-group full" style="margin-top:8px;">
+              <button class="btn btn-primary btn-full" type="submit" id="submit-btn">
+                Place Order
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Result -->
+        <div class="result-box" id="order-result">
+          <div class="result-title" id="order-result-title"></div>
+          <div class="kv-grid" id="order-result-body"></div>
+        </div>
+      </div>
+
+      <!-- Type reference -->
+      <div class="card">
+        <div class="card-title">Order Type Reference</div>
+        <div class="kv-grid">
+          <span class="kv-key">MARKET</span>
+          <span class="kv-val">Executes immediately at the best available market price.</span>
+          <span class="kv-key">LIMIT</span>
+          <span class="kv-val">Executes at your specified price or better. Requires a limit price.</span>
+          <span class="kv-key">STOP_MARKET</span>
+          <span class="kv-val">Triggers a market order when the stop price is reached.</span>
+          <span class="kv-key">STOP_LIMIT ✨</span>
+          <span class="kv-val accent">Triggers a limit order at the limit price when the stop price is hit. Requires both prices.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         TAB 2 — BALANCE
+    ════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-balance">
+      <div class="card">
+        <div class="card-title">Account Balances</div>
+        <button class="btn btn-secondary" onclick="loadBalance()" id="balance-btn">
+          Refresh Balances
+        </button>
+        <div id="balance-result" style="margin-top:20px;"></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         TAB 3 — ORDER STATUS
+    ════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-status">
+      <div class="card">
+        <div class="card-title">Order Status Lookup</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="status-symbol">Symbol</label>
+            <input id="status-symbol" type="text" placeholder="BTCUSDT" maxlength="20" />
+          </div>
+          <div class="form-group">
+            <label for="status-order-id">Order ID</label>
+            <input id="status-order-id" type="number" placeholder="3951823910" />
+          </div>
+          <div class="form-group full">
+            <button class="btn btn-secondary" onclick="loadOrderStatus()" id="status-btn">
+              Fetch Order
+            </button>
+          </div>
+        </div>
+        <div class="result-box" id="status-result">
+          <div class="result-title" id="status-result-title"></div>
+          <div class="kv-grid" id="status-result-body"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Scripts ───────────────────────────────────────── -->
+<script>
+  'use strict';
+
+  // ── Tab switching ─────────────────────────────────────
+  function switchTab(name, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'balance') loadBalance();
+  }
+
+  // ── Order type dynamic fields ─────────────────────────
+  function onTypeChange(type) {
+    const showPrice = type === 'LIMIT' || type === 'STOP_LIMIT';
+    const showStop  = type === 'STOP_MARKET' || type === 'STOP_LIMIT';
+    const showTif   = type === 'LIMIT' || type === 'STOP_LIMIT';
+
+    document.getElementById('field-price').style.display = showPrice ? 'flex' : 'none';
+    document.getElementById('field-stop').style.display  = showStop  ? 'flex' : 'none';
+    document.getElementById('field-tif').style.display   = showTif   ? 'flex' : 'none';
+
+    document.getElementById('price').required      = showPrice;
+    document.getElementById('stop-price').required = showStop;
+  }
+
+  // ── Helpers ───────────────────────────────────────────
+  function setLoading(btn, loading, defaultText) {
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? '<span class="spinner"></span> Loading…'
+      : defaultText;
+  }
+
+  function statusPill(status) {
+    const map = {
+      'FILLED':           'pill-green',
+      'PARTIALLY_FILLED': 'pill-blue',
+      'NEW':              'pill-blue',
+      'CANCELED':         'pill-muted',
+      'REJECTED':         'pill-red',
+      'EXPIRED':          'pill-red'
+    };
+    const cls = map[status] || 'pill-muted';
+    return `<span class="pill ${cls}">${status}</span>`;
+  }
+
+  function sidePill(side) {
+    return side === 'BUY'
+      ? `<span class="pill pill-green">${side}</span>`
+      : `<span class="pill pill-red">${side}</span>`;
+  }
+
+  function renderOrder(order, container, titleEl, ok) {
+    titleEl.textContent = ok ? '✅ Order Result' : '❌ Error';
+    titleEl.className = 'result-title ' + (ok ? 'success' : 'error');
+
+    container.innerHTML = `
+      <span class="kv-key">Order ID</span>
+        <span class="kv-val accent">${order.orderId ?? 'N/A'}</span>
+      <span class="kv-key">Symbol</span>
+        <span class="kv-val">${order.symbol ?? 'N/A'}</span>
+      <span class="kv-key">Side</span>
+        <td>${sidePill(order.side ?? '')}</td>
+      <span class="kv-key">Type</span>
+        <span class="kv-val">${order.type ?? 'N/A'}</span>
+      <span class="kv-key">Status</span>
+        <td>${statusPill(order.status ?? '')}</td>
+      <span class="kv-key">Quantity</span>
+        <span class="kv-val">${order.origQty ?? 'N/A'}</span>
+      <span class="kv-key">Executed Qty</span>
+        <span class="kv-val">${order.executedQty ?? 'N/A'}</span>
+      <span class="kv-key">Avg Price</span>
+        <span class="kv-val green">${order.avgPrice ?? 'N/A'}</span>
+      <span class="kv-key">Limit Price</span>
+        <span class="kv-val">${order.price ?? 'N/A'}</span>
+      <span class="kv-key">Stop Price</span>
+        <span class="kv-val">${order.stopPrice || 'N/A'}</span>
+      <span class="kv-key">Updated</span>
+        <span class="kv-val">${order.updateTimeHuman ?? order.updateTime ?? 'N/A'}</span>
+    `;
+  }
+
+  // ── Place order ───────────────────────────────────────
+  async function submitOrder(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const resultBox = document.getElementById('order-result');
+    const resultTitle = document.getElementById('order-result-title');
+    const resultBody  = document.getElementById('order-result-body');
+
+    setLoading(btn, true, 'Place Order');
+    resultBox.classList.remove('visible', 'success', 'error');
+
+    const type = document.getElementById('order-type').value;
+    const payload = {
+      symbol:   document.getElementById('symbol').value.trim().toUpperCase(),
+      side:     document.getElementById('side').value,
+      type:     type,
+      quantity: document.getElementById('quantity').value,
+      tif:      document.getElementById('tif').value,
+    };
+
+    const priceEl = document.getElementById('price');
+    const stopEl  = document.getElementById('stop-price');
+    if (priceEl.value) payload.price      = priceEl.value;
+    if (stopEl.value)  payload.stop_price = stopEl.value;
+
+    try {
+      const res  = await fetch('/api/order', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      resultBox.classList.add('visible', data.success ? 'success' : 'error');
+
+      if (data.success) {
+        renderOrder(data.order, resultBody, resultTitle, true);
+      } else {
+        resultTitle.textContent = '❌ Order Failed';
+        resultTitle.className   = 'result-title error';
+        resultBody.innerHTML    = `<span class="kv-key">Error</span><span class="kv-val red">${data.error}</span>`;
+      }
+    } catch (err) {
+      resultBox.classList.add('visible', 'error');
+      resultTitle.textContent = '❌ Network Error';
+      resultTitle.className   = 'result-title error';
+      resultBody.innerHTML    = `<span class="kv-key">Detail</span><span class="kv-val red">${err.message}</span>`;
+    } finally {
+      setLoading(btn, false, 'Place Order');
+      resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  // ── Balance ───────────────────────────────────────────
+  async function loadBalance() {
+    const btn = document.getElementById('balance-btn');
+    const container = document.getElementById('balance-result');
+    setLoading(btn, true, 'Refresh Balances');
+    container.innerHTML = '';
+
+    try {
+      const res  = await fetch('/api/balance');
+      const data = await res.json();
+
+      if (!data.success) {
+        container.innerHTML = `<div class="result-box visible error">
+          <div class="result-title error">❌ Error</div>
+          <div class="kv-grid"><span class="kv-key">Detail</span><span class="kv-val red">${data.error}</span></div>
+        </div>`;
+        return;
+      }
+
+      if (!data.balances.length) {
+        container.innerHTML = `<p style="color:var(--muted);font-size:.9rem;">No assets with a non-zero balance.</p>`;
+        return;
+      }
+
+      const rows = data.balances.map(a => `
+        <tr>
+          <td style="color:var(--accent);font-weight:600;">${a.asset}</td>
+          <td>${parseFloat(a.walletBalance).toFixed(8)}</td>
+          <td>${parseFloat(a.availableBalance).toFixed(8)}</td>
+        </tr>
+      `).join('');
+
+      container.innerHTML = `
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Asset</th><th>Wallet Balance</th><th>Available Balance</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    } catch (err) {
+      container.innerHTML = `<div class="result-box visible error">
+        <div class="result-title error">❌ Network Error</div>
+        <div class="kv-grid"><span class="kv-key">Detail</span><span class="kv-val red">${err.message}</span></div>
+      </div>`;
+    } finally {
+      setLoading(btn, false, 'Refresh Balances');
+    }
+  }
+
+  // ── Order status ──────────────────────────────────────
+  async function loadOrderStatus() {
+    const btn = document.getElementById('status-btn');
+    const resultBox   = document.getElementById('status-result');
+    const resultTitle = document.getElementById('status-result-title');
+    const resultBody  = document.getElementById('status-result-body');
+
+    const sym = document.getElementById('status-symbol').value.trim().toUpperCase();
+    const oid = document.getElementById('status-order-id').value.trim();
+
+    if (!sym || !oid) {
+      alert('Please enter both symbol and order ID.');
+      return;
+    }
+
+    setLoading(btn, true, 'Fetch Order');
+    resultBox.classList.remove('visible', 'success', 'error');
+
+    try {
+      const res  = await fetch(`/api/order?symbol=${encodeURIComponent(sym)}&order_id=${encodeURIComponent(oid)}`);
+      const data = await res.json();
+
+      resultBox.classList.add('visible', data.success ? 'success' : 'error');
+
+      if (data.success) {
+        renderOrder(data.order, resultBody, resultTitle, true);
+      } else {
+        resultTitle.textContent = '❌ Error';
+        resultTitle.className   = 'result-title error';
+        resultBody.innerHTML    = `<span class="kv-key">Detail</span><span class="kv-val red">${data.error}</span>`;
+      }
+    } catch (err) {
+      resultBox.classList.add('visible', 'error');
+      resultTitle.textContent = '❌ Network Error';
+      resultTitle.className   = 'result-title error';
+      resultBody.innerHTML    = `<span class="kv-key">Detail</span><span class="kv-val red">${err.message}</span>`;
+    } finally {
+      setLoading(btn, false, 'Fetch Order');
+    }
+  }
+</script>
+</body>
+</html>
